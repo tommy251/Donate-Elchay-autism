@@ -55,7 +55,7 @@ def pay():
         # Log the error details
         print(f"Paystack API error: {response.status_code} - {response.text}")
         return jsonify({"status": "error", "message": f"Payment initialization failed: {response.text}"}), 400
-    
+
 @app.route('/verify/<reference>', methods=['GET'])
 def verify(reference):
     url = f"https://api.paystack.co/transaction/verify/{reference}"
