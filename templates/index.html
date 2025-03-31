@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elchay Autism Initiative - Donate</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="static/elchay.jpg" alt="Elchay Autism Initiative Logo" class="logo">
+            <h1>Support Elchay Autism Initiative</h1>
+            <p>Advocacy | Education | Treatment</p>
+        </header>
+
+        <section class="donation-form">
+            <h2>Make a Donation</h2>
+            <form id="donationForm">
+                <label for="name">Full Name:</label>
+                <input type="text" id="name" name="name" required>
+
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+
+                <label for="amount">Amount (NGN):</label>
+                <input type="number" id="amount" name="amount" min="100" required>
+
+                <button type="submit">Donate Now</button>
+            </form>
+            <p id="message"></p>
+        </section>
+
+        <footer>
+            <p>Partner | Donate | Volunteer</p>
+            <p>Contact: 07039595343 | elchayautismorg@gmail.com</p>
+        </footer>
+    </div>
+
+    <!-- Paystack Inline Script -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        const paystackKey = "{{ paystack_key }}";
+    </script>
+</body>
+</html>
