@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Elchay Autism Initiative - Donate</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.min.css') }}">
 </head>
 <body>
     <div class="container">
@@ -39,7 +39,7 @@
 
     <!-- Paystack Inline Script -->
     <script src="https://js.paystack.co/v1/inline.js"></script>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='script.min.js') }}"></script>
     <script>
         const paystackKey = "{{ paystack_key }}";
     </script>
