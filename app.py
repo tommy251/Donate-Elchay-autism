@@ -1,17 +1,18 @@
-from flask import Flask, render_template, request, jsonify
-import requests
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 import os
 import csv
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
+from paystackapi.paystack import Paystack
 
 app = Flask(__name__)
 
-# Paystack API keys (use environment variables for security)
+# Paystack configuration (use environment variables for security)
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "sk_test_your_secret_key")
 PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY", "pk_test_your_public_key")
+paystack = Paystack(secret_key=PAYSTACK_SECRET_KEY)
 
 # Email configuration (use environment variables for security)
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS", "your_email@gmail.com")
@@ -37,37 +38,39 @@ def pay():
     email = request.form.get('email')
     amount = request.form.get('amount')
 
-    url = "https://api.paystack.co/transaction/initialize"
-    headers = {
-        "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "email": email,
-        "amount": int(amount) * 100,  # Convert to kobo
-        "currency": "NGN"
-    }
+    # Validate amount
+    try:
+        amount = int(amount)
+        if amount < 100:
+            return jsonify({"status": "error", "message": "Amount must be at least 100 NGN"}), 400
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid amount"}), 400
 
-    response = requests.post(url, headers=headers, json=data)
-    if response.status_code == 200:
-        return jsonify(response.json())
-    else:
-        # Log the error details
-        print(f"Paystack API error: {response.status_code} - {response.text}")
-        return jsonify({"status": "error", "message": f"Payment initialization failed: {response.text}"}), 400
+    try:
+        # Initialize Paystack transaction using paystackapi
+        response = paystack.transaction.initialize(
+            amount=amount * 100,  # Convert to kobo
+            email=email,
+            currency="NGN",
+            reference=f"elchay_donation_{int(os.urandom(8).hex(), 16)}",
+            callback_url="https://donate-elchay-autism.onrender.com/verify-payment"
+        )
+
+        if response['status']:
+            return jsonify({'status': 'success', 'data': response['data']})
+        else:
+            print(f"Paystack API error: {response['message']}")
+            return jsonify({"status": "error", "message": f"Payment initialization failed: {response['message']}"}), 400
+
+    except Exception as e:
+        print(f"Paystack API exception: {str(e)}")
+        return jsonify({"status": "error", "message": f"Payment initialization failed: {str(e)}"}), 500
 
 @app.route('/verify/<reference>', methods=['GET'])
 def verify(reference):
-    url = f"https://api.paystack.co/transaction/verify/{reference}"
-    headers = {
-        "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
-        "Content-Type": "application/json"
-    }
-
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        verify_data = response.json()
-        if verify_data['status'] and verify_data['data']['status'] == 'success':
+    try:
+        response = paystack.transaction.verify(reference=reference)
+        if response['status'] and response['data']['status'] == 'success':
             name = request.args.get('name', 'Unknown')
             email = request.args.get('email', 'Unknown')
             amount = request.args.get('amount', '0')
@@ -81,9 +84,28 @@ def verify(reference):
 
             return jsonify({"status": "success", "message": "Payment verified successfully"})
         else:
+            print(f"Paystack verification failed: {response['message']}")
             return jsonify({"status": "error", "message": "Payment verification failed"}), 400
-    else:
-        return jsonify({"status": "error", "message": "Payment verification failed"}), 400
+    except Exception as e:
+        error_message = f"Payment verification failed: {str(e)}"
+        print(f"Paystack verification exception: {error_message}")
+        return jsonify({"status": "error", "message": error_message}), 500
+
+@app.route('/verify-payment')
+def verify_payment():
+    reference = request.args.get('reference')
+    if not reference:
+        return redirect(url_for('index', _anchor='cancel'))
+
+    try:
+        response = paystack.transaction.verify(reference=reference)
+        if response['status'] and response['data']['status'] == 'success':
+            return redirect(url_for('index', _anchor='success'))
+        else:
+            return redirect(url_for('index', _anchor='cancel'))
+    except Exception as e:
+        print(f"Paystack verification exception: {str(e)}")
+        return redirect(url_for('index', _anchor='cancel'))
 
 def send_email(name, email, amount, reference):
     msg = MIMEMultipart()
@@ -114,6 +136,5 @@ def send_email(name, email, amount, reference):
         print(f"Failed to send email: {e}")
 
 if __name__ == '__main__':
-    # For local development, use Flask's development server
-    port = int(os.getenv("PORT", 5000))  # Use PORT env var if available, else default to 5000
+    port = int(os.getenv("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)

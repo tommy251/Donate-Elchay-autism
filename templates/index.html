@@ -31,9 +31,16 @@
             <p id="message"></p>
         </section>
 
+        <section id="success" style="display: none;">
+            <p style="color: #2ecc71;">Payment successful! Thank you for your donation!</p>
+        </section>
+        <section id="cancel" style="display: none;">
+            <p style="color: #e74c3c;">Payment failed or was cancelled. Please try again.</p>
+        </section>
+
         <footer>
             <p>Partner | Donate | Volunteer</p>
-            <p>Contact: 07039593543 | elchayautismorg@gmail.com</p>
+            <p>Contact: 07039595343 | elchayautismorg@gmail.com</p>
         </footer>
     </div>
 
@@ -42,6 +49,16 @@
     <script src="{{ url_for('static', filename='script.min.js') }}"></script>
     <script>
         const paystackKey = "{{ paystack_key }}";
+
+        // Show success or cancel message based on URL anchor
+        window.onload = function () {
+            const hash = window.location.hash;
+            if (hash === '#success') {
+                document.getElementById('success').style.display = 'block';
+            } else if (hash === '#cancel') {
+                document.getElementById('cancel').style.display = 'block';
+            }
+        };
     </script>
 </body>
 </html>
