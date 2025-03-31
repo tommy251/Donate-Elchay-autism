@@ -44,7 +44,7 @@ def pay():
     }
     data = {
         "email": email,
-        "amount": int(amount) * 100,
+        "amount": int(amount) * 100,  # Convert to kobo
         "currency": "NGN"
     }
 
@@ -52,8 +52,10 @@ def pay():
     if response.status_code == 200:
         return jsonify(response.json())
     else:
-        return jsonify({"status": "error", "message": "Payment initialization failed"}), 400
-
+        # Log the error details
+        print(f"Paystack API error: {response.status_code} - {response.text}")
+        return jsonify({"status": "error", "message": f"Payment initialization failed: {response.text}"}), 400
+    
 @app.route('/verify/<reference>', methods=['GET'])
 def verify(reference):
     url = f"https://api.paystack.co/transaction/verify/{reference}"
